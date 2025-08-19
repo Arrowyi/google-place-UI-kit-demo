@@ -16,6 +16,7 @@ package com.example.placedetailsuikit.full
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.location.Location
@@ -25,6 +26,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -52,6 +54,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.placedetailsuikit.BuildConfig
 import com.example.placedetailsuikit.R
 import com.example.placedetailsuikit.databinding.ActivityFullConfigurableMapBinding
+import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -61,12 +64,25 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.CircularBounds
+import com.google.android.libraries.places.api.model.LocationRestriction
 import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.kotlin.place
+import com.google.android.libraries.places.api.net.SearchNearbyRequest
+import com.google.android.libraries.places.widget.BasicPlaceAutocomplete
 import com.google.android.libraries.places.widget.PlaceDetailsFragment
 import com.google.android.libraries.places.widget.PlaceLoadListener
+import com.google.android.libraries.places.widget.PlaceSearchFragment
+import com.google.android.libraries.places.widget.PlaceSearchFragmentListener
+import com.google.android.libraries.places.widget.model.AttributionPosition
+import com.google.android.libraries.places.widget.model.AutocompleteListDensity
+import com.google.android.libraries.places.widget.model.AutocompleteUiCustomization
+import com.google.android.libraries.places.widget.model.AutocompleteUiIcon
+import com.google.android.libraries.places.widget.model.MediaSize
 import com.google.android.libraries.places.widget.model.Orientation
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.text.replace
 
 private const val TAG = "FullConfigurablePlaceDetailsActivity"
 
@@ -90,6 +106,14 @@ class FullConfigurablePlaceDetailsActivity : AppCompatActivity(), OnMapReadyCall
 
     // The ViewModel holds all the state that needs to survive configuration changes.
     private val viewModel: FullContentSelectionViewModel by viewModels()
+
+    lateinit var basicPlaceAutocompleteActivityResultLauncher:ActivityResultLauncher<Intent>
+
+
+    lateinit var autocompleteIntent: Intent
+
+    private var lastKnownLocation: LatLng? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -164,6 +188,35 @@ class FullConfigurablePlaceDetailsActivity : AppCompatActivity(), OnMapReadyCall
 
         binding.myLocationButton.setOnClickListener {
             fetchLastLocation()
+            basicPlaceAutocompleteActivityResultLauncher.launch(autocompleteIntent)
+        }
+
+        autocompleteIntent =  BasicPlaceAutocomplete.createIntent(this) {
+            setInitialQuery("INSERT_QUERY_TEXT")
+            setOrigin(LatLng(10.0, 10.0))
+            // ...
+
+            setAutocompleteUiCustomization(
+                AutocompleteUiCustomization.create(
+                    listDensity = AutocompleteListDensity.MULTI_LINE,
+                    listItemIcon = AutocompleteUiIcon.listItemDefaultIcon(),
+                )
+            )
+        }
+
+        basicPlaceAutocompleteActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+                result: ActivityResult ->
+            val intent = result.data
+            val place: Place? = BasicPlaceAutocomplete.getPlaceFromIntent(intent!!)
+            val status: Status? =
+                BasicPlaceAutocomplete.getResultStatusFromIntent(intent!!)
+            // ...
+            goToShowPlaceDetailsFragment(place?.id!!)
+        }
+
+
+        binding.searchButton.setOnClickListener {
+            showResultList()
         }
     }
 
@@ -219,6 +272,8 @@ class FullConfigurablePlaceDetailsActivity : AppCompatActivity(), OnMapReadyCall
                         val latLng = LatLng(location.latitude, location.longitude)
                         googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
                         Log.d(TAG, "Moved to user's last known location.")
+
+                        lastKnownLocation = latLng
                     } else {
                         handleLocationError()
                     }
@@ -236,10 +291,17 @@ class FullConfigurablePlaceDetailsActivity : AppCompatActivity(), OnMapReadyCall
         val sydney = LatLng(-33.8688, 151.2093)
         googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(sydney, 13f))
         Log.d(TAG, "Moved to Sydney")
+
+        lastKnownLocation = sydney
     }
 
     override fun onPoiClick(poi: PointOfInterest) {
         val placeId = poi.placeId
+        goToShowPlaceDetailsFragment(placeId)
+    }
+
+    private fun goToShowPlaceDetailsFragment(placeId: String)
+    {
         Log.d(TAG, "Place ID: $placeId")
         viewModel.selectedPlaceId = placeId
         showPlaceDetailsFragment(placeId)
@@ -343,7 +405,50 @@ class FullConfigurablePlaceDetailsActivity : AppCompatActivity(), OnMapReadyCall
             .create()
             .show()
     }
+
+    private fun showResultList(){
+        val fragment: PlaceSearchFragment =
+            PlaceSearchFragment.newInstance(PlaceSearchFragment.STANDARD_CONTENT)
+
+        fragment.preferTruncation = false
+        fragment.attributionPosition = AttributionPosition.BOTTOM
+        fragment.mediaSize = MediaSize.SMALL
+        fragment.selectable = true
+
+        fragment.registerListener(
+            object : PlaceSearchFragmentListener {
+                override fun onLoad(places: List<Place>) {
+                    binding.placeResultWrapper.visibility = View.VISIBLE
+                    Log.d(TAG, "onLoad: ${places}")
+                }
+                override fun onRequestError(e: Exception) {
+                    Log.d(TAG, "onRequestError: ${e}")
+                }
+                override fun onPlaceSelected(place: Place) {
+                    Log.d(TAG, "onPlaceSelected: ${place}")
+                    showPlaceDetailsFragment(place.id)
+                }
+            }
+        )
+
+        supportFragmentManager.beginTransaction().replace(binding.placeResultContainer.id, fragment).commitNow()
+
+        val bounds = CircularBounds.newInstance(lastKnownLocation, /* radiusMeters = */ 49*1000.0)
+        val fields = Place.Field.entries.toList()
+
+
+        val req = SearchNearbyRequest.builder(bounds, fields)
+        req.includedPrimaryTypes = listOf("airport")
+
+        binding.root.post {
+            fragment.configureFromSearchNearbyRequest(req.build())
+        }
+
+    }
+
 }
+
+
 
 /**
  * A Composable that displays the content selection UI.

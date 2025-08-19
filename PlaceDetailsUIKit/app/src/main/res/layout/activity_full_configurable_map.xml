@@ -32,6 +32,18 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/search_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:contentDescription="@string/configure_button_content_description"
+        app:layout_constraintBottom_toTopOf="@+id/my_location_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@drawable/outline_settings_24"
+        tools:ignore="SpeakableTextPresentCheck" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/my_location_button"
@@ -54,23 +66,42 @@
         android:layout_marginBottom="16dp"
         android:clickable="true"
         android:contentDescription="@string/configure_button_content_description"
-        app:layout_constraintBottom_toTopOf="@+id/place_details_wrapper"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@drawable/outline_settings_24"
         tools:ignore="SpeakableTextPresentCheck" />
-
-    <!-- Wrapper to hold the fragment, the dismiss button, AND the loader -->
     <FrameLayout
-        android:id="@+id/place_details_wrapper"
-        android:layout_width="0dp"
+        android:id="@+id/place_result_wrapper"
+        android:layout_width="500dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:elevation="4dp"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible">
+
+        <!-- The container for the fragment -->
+        <FrameLayout
+            android:id="@+id/place_result_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </FrameLayout>
+
+
+    <!-- Wrapper to hold the fragment, the dismiss button, AND the loader -->
+    <FrameLayout
+        android:id="@+id/place_details_wrapper"
+        android:layout_width="500dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:elevation="4dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         tools:visibility="visible">
 
