@@ -16,6 +16,7 @@ package com.example.placedetailsuikit.compact
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.location.Location
@@ -25,6 +26,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -52,6 +54,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.placedetailsuikit.BuildConfig
 import com.example.placedetailsuikit.R
 import com.example.placedetailsuikit.databinding.ActivityConfigurableMapBinding
+import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -62,9 +65,13 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.BasicPlaceAutocomplete
 import com.google.android.libraries.places.widget.PlaceDetailsCompactFragment
 import com.google.android.libraries.places.widget.PlaceDetailsCompactFragment.Content
 import com.google.android.libraries.places.widget.PlaceLoadListener
+import com.google.android.libraries.places.widget.model.AutocompleteListDensity
+import com.google.android.libraries.places.widget.model.AutocompleteUiCustomization
+import com.google.android.libraries.places.widget.model.AutocompleteUiIcon
 import com.google.android.libraries.places.widget.model.Orientation
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -220,20 +227,21 @@ class ConfigurablePlaceDetailsActivity : AppCompatActivity(), OnMapReadyCallback
     @SuppressLint("MissingPermission")
     private fun fetchLastLocation() {
         if (isLocationPermissionGranted()) {
-            fusedLocationClient.lastLocation
-                .addOnSuccessListener { location: Location? ->
-                    if (location != null) {
-                        val latLng = LatLng(location.latitude, location.longitude)
-                        googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
-                        Log.d(TAG, "Moved to user's last known location.")
-                    } else {
-                        handleLocationError()
-                    }
-                }
-                .addOnFailureListener {
-                    Log.e(TAG, "Failed to get location.", it)
-                    handleLocationError()
-                }
+//            fusedLocationClient.lastLocation
+//                .addOnSuccessListener { location: Location? ->
+//                    if (location != null) {
+//                        val latLng = LatLng(location.latitude, location.longitude)
+//                        googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+//                        Log.d(TAG, "Moved to user's last known location.")
+//                    } else {
+//                        handleLocationError()
+//                    }
+//                }
+//                .addOnFailureListener {
+//                    Log.e(TAG, "Failed to get location.", it)
+//                    handleLocationError()
+//                }
+
         } else {
             requestLocationPermissions()
         }
